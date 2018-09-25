@@ -1,0 +1,94 @@
+
+
+
+$awsdaten = aws route53 list-resource-record-sets --hosted-zone-id $zoneid
+
+$awsdatenneu = $awsdaten | ConvertFrom-Json
+
+$zonegesucht = $awsdatenneu.ResourceRecordSets | Where-Object{$_.Name -eq "domain.de"}
+
+$ipgesucht = (($zonegesucht).ResourceRecords).Value
+
+
+
+$ec2daten = aws ec2 describe-instances | ConvertFrom-Json
+
+$ec2gesucht = (($ec2daten).reservations).Instances | Where-Object {$_.InstanceID-eq $InstanzID }
+
+$ec2ip = (($ec2gesucht).PublicIpAddress)
+
+
+
+if ($ec2ip -ne $ipgesucht) {
+
+
+
+   $daten1 = Get-Content C:\Path\ARECORD.json -raw | ConvertFrom-Json
+
+   $daten1.Changes.ResourcerecordSet.ResourceRecords | %{$_.Value=$ec2ip}
+
+   $daten1 | ConvertTo-Json -Depth 5 | set-content C:\awsrobotera.json
+
+
+
+
+
+   $daten2 = Get-Content C:\Path\CNAMERECORD.json -raw | ConvertFrom-Json
+
+   $daten2.Changes.ResourcerecordSet.ResourceRecords | %{$_.Value=$ec2ip}
+
+   $daten2 | ConvertTo-Json -Depth 5 | set-content C:\awsrobotercname.json
+
+   aws route53 change-resource-record-sets --hosted-zone-id $zoneid --change-batch file://C:\awsrobotercname.json
+
+   aws route53 change-resource-record-sets --hosted-zone-id $zoneid --change-batch file://C:\awsrobotera.json
+
+
+
+}
+
+
+
+
+
+JSON:
+
+
+
+
+
+{
+
+    "Comment":  "Update record to reflect new IP address for a system ",
+
+    "Changes":  [
+
+                    {
+
+                        "Action":  "UPSERT",
+
+                        "ResourceRecordSet":  {
+
+                                                  "Name":  "domain.de",
+
+                                                  "Type":  "A",
+
+                                                  "TTL":  300,
+
+                                                  "ResourceRecords":  [
+
+                                                                          {
+
+                                                                              "Value":  "255.255.255.255."
+
+                                                                          }
+
+                                                                      ]
+
+                                              }
+
+                    }
+
+                ]
+
+}

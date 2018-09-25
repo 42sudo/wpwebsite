@@ -1,2 +1,0 @@
-# wpwebsite
-Content of wpwebsite ;)
